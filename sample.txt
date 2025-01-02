@@ -1,0 +1,14 @@
+"job-description" : "Candidates have the ability to work with research and development.*
+Complete Knowledge of
+Node Js
+React Js
+Angular Js
+Laravel
+CSS / CSS3
+Basic Knowledge of
+JavaScript
+Bootstrap
+jQuery
+Job Types: Full-time, Regular / Permanent, Internship, Fresher
+Bachelor s (Preferred)"
+

@@ -1,49 +1,53 @@
+## helper.py
 import google.generativeai as genai
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.prompts import ChatPromptTemplate
 import PyPDF2 as pdf
+import os
+from pinecone import Pinecone, ServerlessSpec
 import json
+import re
+
 
 def configure_genai(api_key):
-    """Configure the Generative AI API with error handling."""
-    try:
-        genai.configure(api_key=api_key)
-    except Exception as e:
-        raise Exception(f"Failed to configure Generative AI: {str(e)}")
-    
+    """Configure the Generative AI API."""
+    genai.configure(api_key=api_key)
 
-def get_gemini_response(prompt):
-    """Generate a response using Gemini with enhanced error handling and response validation."""
-    try:
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(prompt)
-        
-        # Ensure response is not empty
-        if not response or not response.text:
-            raise Exception("Empty response received from Gemini")
-            
-        # Try to parse the response as JSON
-        try:
-            response_json = json.loads(response.text)
-            
-            # Validate required fields
-            required_fields = ["JD Match", "MissingKeywords", "Profile Summary"]
-            for field in required_fields:
-                if field not in response_json:
-                    raise ValueError(f"Missing required field: {field}")
-                    
-            return response.text
-            
-        except json.JSONDecodeError:
-            # If response is not valid JSON, try to extract JSON-like content
-            import re
-            json_pattern = r'\{.*\}'
-            match = re.search(json_pattern, response.text, re.DOTALL)
-            if match:
-                return match.group()
-            else:
-                raise Exception("Could not extract valid JSON response")
-                
-    except Exception as e:
-        raise Exception(f"Error generating response: {str(e)}")
+
+def calculate_similarity(jd, resume):
+    """Calculate similarity between job description and resume using embeddings."""
+    embeddings = GoogleGenerativeAIEmbeddings(google_api_key=os.getenv("GOOGLE_API_KEY"),model="models/embedding-001")
+    jd_embedding = embeddings.embed_query(jd)
+    resume_embedding = embeddings.embed_query(resume)
+
+    similarity = sum([a * b for a, b in zip(jd_embedding, resume_embedding)])
+    return similarity
+
+def calculate_similarity_pinecone(best_match, resume):
+    """Calculate similarity between job description and resume using embeddings."""
+    embeddings = GoogleGenerativeAIEmbeddings(google_api_key=os.getenv("GOOGLE_API_KEY"),model="models/embedding-001")
+    best_match = embeddings.embed_query(best_match)
+    resume_embedding = embeddings.embed_query(resume)
+
+    similarity = sum([a * b for a, b in zip(best_match, resume_embedding)])
+    return similarity
+
+
+def get_pinecone_matches(query):
+    """Query Pinecone for matching resumes."""
+    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    index_name = "resume-dataset-index"
+    index=pc.Index(index_name)
+    vector_store = PineconeVectorStore(index=index, embedding=GoogleGenerativeAIEmbeddings(
+    model="models/embedding-001",
+    google_api_key=os.getenv("GOOGLE_API_KEY")))
+    results = vector_store.similarity_search(query, k = 1)
+    return[{
+        "Category": result.metadata.get("Category"),
+        "Content": result.page_content,
+    } for result in results]
+
 
 def extract_pdf_text(uploaded_file):
     """Extract text from PDF with enhanced error handling."""
@@ -51,7 +55,7 @@ def extract_pdf_text(uploaded_file):
         reader = pdf.PdfReader(uploaded_file)
         if len(reader.pages) == 0:
             raise Exception("PDF file is empty")
-            
+        
         text = []
         for page in reader.pages:
             page_text = page.extract_text()
@@ -65,7 +69,7 @@ def extract_pdf_text(uploaded_file):
         
     except Exception as e:
         raise Exception(f"Error extracting PDF text: {str(e)}")
-    
+
 
 
 def prepare_prompt(resume_text, job_description):
@@ -74,31 +78,33 @@ def prepare_prompt(resume_text, job_description):
         raise ValueError("Resume text and job description cannot be empty")
         
     prompt_template = """
-    Act as an expert ATS (Applicant Tracking System) specialist with deep expertise in:
-    - Technical fields
-    - Software engineering
-    - Data science
-    - Data analysis
-    - Big data engineering
-    
+    Act as an expert ATS (Applicant Tracking System) specialist 
     Evaluate the following resume against the job description. Consider that the job market 
     is highly competitive. Provide detailed feedback for resume improvement.
-    
     Resume:
     {resume_text}
-    
     Job Description:
     {job_description}
-    
-    Provide a response in the following JSON format ONLY:
-    {{
-        "JD Match": "percentage between 0-100",
-        "MissingKeywords": ["keyword1", "keyword2", ...],
-        "Profile Summary": "detailed analysis of the match and specific improvement suggestions"
-    }}
+    Provide a response in the string format only
     """
     
     return prompt_template.format(
         resume_text=resume_text.strip(),
         job_description=job_description.strip()
     )
+    
+
+def get_gemini_response(prompt):
+    """Generate a response using Gemini with enhanced error handling and response validation."""
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        
+        # Ensure response is not empty
+        if not response or not response.text:
+            raise Exception("Empty response received from Gemini")
+            
+    except:
+        raise Exception("Problem with get_gemini_response")
+    
+    return response.text

@@ -1,15 +1,23 @@
+## app.py
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 import os
 import json
 from dotenv import load_dotenv
-from helper import configure_genai, get_gemini_response, extract_pdf_text, prepare_prompt
+from helper import (
+    configure_genai,
+    extract_pdf_text,
+    prepare_prompt,
+    calculate_similarity_pinecone,
+    calculate_similarity,
+    get_pinecone_matches,
+    get_gemini_response
+)
 
 def init_session_state():
     """Initialize session state variables."""
     if 'processing' not in st.session_state:
         st.session_state.processing = False
-
 
 def main():
     # Load environment variables
@@ -19,9 +27,9 @@ def main():
     init_session_state()
     
     # Configure Generative AI
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        st.error("Please set the GEMINI_API_KEY in your .env file")
+        st.error("Please set the GOOGLE_API_KEY in your .env file")
         return
         
     try:
@@ -42,7 +50,7 @@ def main():
         """)
 
     # Main content
-    st.title("📄 Smart ATS Resume Analyzer")
+    st.title("🎯 Smart ATS Resume Analyzer")
     st.subheader("Optimize Your Resume for ATS")
     
     # Input sections with validation
@@ -71,36 +79,39 @@ def main():
         st.session_state.processing = True
         
         try:
-            with st.spinner("📊 Analyzing your resume..."):
+            with st.spinner("🎯 Analyzing your resume..."):
                 # Extract text from PDF
                 resume_text = extract_pdf_text(uploaded_file)
+                print(f"Data type of resume_text : {type(resume_text)}")
                 
-                # Prepare prompt
-                input_prompt = prepare_prompt(resume_text, jd)
+                # Query Pinecone for most matched resume
+                pinecone_results = get_pinecone_matches(jd)[0]
+                pinecone_results = pinecone_results['Content']
+                print(pinecone_results)
+                print(f"Data type of pinecone_results : {type(pinecone_results)}")
                 
-                # Get and parse response
-                response = get_gemini_response(input_prompt)
-                response_json = json.loads(response)
+                # Prepare embeddings
+                similarity = calculate_similarity(jd, resume_text)
+                pinecone_similarity = calculate_similarity_pinecone(pinecone_results,resume_text)
+                
+                # Calculate ATS score
+                ats_score = ((similarity + pinecone_similarity) / 2) * 100
+                
+                # Geimin
+                input_prompt = prepare_prompt(resume_text=resume_text,job_description=jd)
                 
                 # Display results
-                st.success("✨ Analysis Complete!")
+                st.success("🎯 Analysis Complete!")
                 
                 # Match percentage
-                match_percentage = response_json.get("JD Match", "N/A")
-                st.metric("Match Score", match_percentage)
+                st.metric("ATS Score", f"{ats_score:.2f}%")
                 
                 # Missing keywords
-                st.subheader("Missing Keywords")
-                missing_keywords = response_json.get("MissingKeywords", [])
-                if missing_keywords:
-                    st.write(", ".join(missing_keywords))
-                else:
-                    st.write("No critical missing keywords found!")
-                
-                # Profile summary
-                st.subheader("Profile Summary")
-                st.write(response_json.get("Profile Summary", "No summary available"))
-                
+                st.title("Resume Feedback : ")
+                res=get_gemini_response(input_prompt)
+                st.write(res)
+                                
+
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             
