@@ -95,16 +95,16 @@ def main():
                 pinecone_similarity = calculate_similarity_pinecone(pinecone_results,resume_text)
                 
                 # Calculate ATS score
-                ats_score = ((similarity + pinecone_similarity) / 2) * 100
+                # ats_score = ((similarity + pinecone_similarity) / 2) * 100
                 
                 # Geimin
-                input_prompt = prepare_prompt(resume_text=resume_text,job_description=jd)
+                input_prompt = prepare_prompt(resume_text=resume_text,job_description=jd, pinecone_result=pinecone_results,cos_sim_pinecone_resume=pinecone_similarity,cos_sim_jd_resume=similarity)
                 
                 # Display results
                 st.success("🎯 Analysis Complete!")
                 
                 # Match percentage
-                st.metric("ATS Score", f"{ats_score:.2f}%")
+                # st.metric("ATS Score", f"{ats_score:.2f}%")
                 
                 # Missing keywords
                 st.title("Resume Feedback : ")

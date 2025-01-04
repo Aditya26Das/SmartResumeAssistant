@@ -72,25 +72,33 @@ def extract_pdf_text(uploaded_file):
 
 
 
-def prepare_prompt(resume_text, job_description):
+def prepare_prompt(resume_text, job_description, pinecone_result, cos_sim_jd_resume, cos_sim_pinecone_resume):
     """Prepare the input prompt with improved structure and validation."""
     if not resume_text or not job_description:
         raise ValueError("Resume text and job description cannot be empty")
         
-    prompt_template = """
+    prompt_template = f"""
     Act as an expert ATS (Applicant Tracking System) specialist 
-    Evaluate the following resume against the job description. Consider that the job market 
-    is highly competitive. Provide detailed feedback for resume improvement.
+    Evaluate the following resume against the job description and top search result from the vector database. 
+    Along with resume text, job description and search result also take into account the value of cosine similarity of job description and resume text along with cosine similarity of resume and search result to calculate the ATS score. Consider that the job market is highly competitive. Also provide detailed feedback for resume and suggest some improvements and missing keywords.
     Resume:
     {resume_text}
-    Job Description:
+    
+    Job Description: 
     {job_description}
+    
+    Top Search result based on the similarity search of resume in the Vector Database is : 
+    {pinecone_result}
+    
+    The cosine similarity of resume of the user with job description is {cos_sim_jd_resume}.
+    The cosine similarity of resume with that of the search result of vector database is {cos_sim_pinecone_resume}.
     Provide a response in the string format only
     """
     
     return prompt_template.format(
         resume_text=resume_text.strip(),
-        job_description=job_description.strip()
+        job_description=job_description.strip(),
+        pinecone_result=pinecone_result.strip()
     )
     
 
