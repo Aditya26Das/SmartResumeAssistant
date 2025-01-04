@@ -80,7 +80,7 @@ def prepare_prompt(resume_text, job_description, pinecone_result, cos_sim_jd_res
     prompt_template = f"""
     Act as an expert ATS (Applicant Tracking System) specialist 
     Evaluate the following resume against the job description and top search result from the vector database. 
-    Along with resume text, job description and search result also take into account the value of cosine similarity of job description and resume text along with cosine similarity of resume and search result to calculate the ATS score. Consider that the job market is highly competitive. Also provide detailed feedback for resume and suggest some improvements and missing keywords.
+    Along with resume text, job description and search result also take into account the value of cosine similarity of job description and resume text along with cosine similarity of resume and search result to calculate the ATS score and donot display the cosine similarity scores in the output just the ATS score in percentage. Consider that the job market is highly competitive. Also provide detailed feedback for resume and suggest some improvements and missing keywords.
     Resume:
     {resume_text}
     
