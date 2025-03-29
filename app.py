@@ -89,7 +89,7 @@ def main():
                 pinecone_results = results[0].page_content if results else ""
                 
                 # Calculate similarity scores
-                model = GoogleGenerativeAI(model="gemini-pro", google_api_key=os.getenv("GOOGLE_API_KEY"))
+                model = GoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=os.getenv("GOOGLE_API_KEY"))
                 similarity = sum([a * b for a, b in zip(jd_embedding, resume_embedding)])
                 pinecone_embedding = embeddings.embed_query(pinecone_results)
                 pinecone_similarity = sum([a * b for a, b in zip(pinecone_embedding, resume_embedding)])
