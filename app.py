@@ -3,7 +3,7 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 import os
 import json
 from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.prompts import ChatPromptTemplate
 from pinecone import Pinecone
@@ -89,6 +89,7 @@ def main():
                 pinecone_results = results[0].page_content if results else ""
                 
                 # Calculate similarity scores
+                model = GoogleGenerativeAI(model="gemini-pro", google_api_key=os.getenv("GOOGLE_API_KEY"))
                 similarity = sum([a * b for a, b in zip(jd_embedding, resume_embedding)])
                 pinecone_embedding = embeddings.embed_query(pinecone_results)
                 pinecone_similarity = sum([a * b for a, b in zip(pinecone_embedding, resume_embedding)])
@@ -104,7 +105,7 @@ def main():
                 
                 # Generate response using LangChain's chat model
                 prompt = ChatPromptTemplate.from_template(input_prompt)
-                response = prompt.invoke({})
+                response = model.invoke(prompt.format())
                 
                 # Display results
                 st.success("🎯 Analysis Complete!")
