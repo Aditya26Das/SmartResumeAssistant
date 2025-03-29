@@ -1,16 +1,15 @@
-## app.py
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 import os
 import json
 from dotenv import load_dotenv
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.prompts import ChatPromptTemplate
+from pinecone import Pinecone
 from helper import (
-    get_google_embeddings,
-    calculate_similarity,
-    get_pinecone_matches,
     extract_pdf_text,
-    prepare_prompt,
-    get_gemini_response
+    prepare_prompt
 )
 
 def init_session_state():
@@ -25,16 +24,11 @@ def main():
     # Initialize session state
     init_session_state()
     
-    # Configure Generative AI
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        st.error("Please set the GOOGLE_API_KEY in your .env file")
-        return
-        
-    try:
-        configure_genai(api_key)
-    except Exception as e:
-        st.error(f"Failed to configure API: {str(e)}")
+    # Configure API keys
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    pinecone_api_key = os.getenv("PINECONE_API_KEY")
+    if not google_api_key or not pinecone_api_key:
+        st.error("Please set the API keys in your .env file")
         return
 
     # Sidebar
@@ -81,35 +75,41 @@ def main():
             with st.spinner("🎯 Analyzing your resume..."):
                 # Extract text from PDF
                 resume_text = extract_pdf_text(uploaded_file)
-                print(f"Data type of resume_text : {type(resume_text)}")
+                
+                # Initialize embeddings
+                embeddings = GoogleGenerativeAIEmbeddings(google_api_key=google_api_key, model="models/embedding-001")
+                jd_embedding = embeddings.embed_query(jd)
+                resume_embedding = embeddings.embed_query(resume_text)
                 
                 # Query Pinecone for most matched resume
-                pinecone_results = get_pinecone_matches(jd)[0]
-                pinecone_results = pinecone_results['Content']
-                print(pinecone_results)
-                print(f"Data type of pinecone_results : {type(pinecone_results)}")
+                pc = Pinecone(api_key=pinecone_api_key)
+                index = pc.Index("resume-dataset-index")
+                vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+                results = vector_store.similarity_search(jd, k=1)
+                pinecone_results = results[0].page_content if results else ""
                 
-                # Prepare embeddings
-                similarity = calculate_similarity(jd, resume_text)
-                pinecone_similarity = calculate_similarity_pinecone(pinecone_results,resume_text)
+                # Calculate similarity scores
+                similarity = sum([a * b for a, b in zip(jd_embedding, resume_embedding)])
+                pinecone_embedding = embeddings.embed_query(pinecone_results)
+                pinecone_similarity = sum([a * b for a, b in zip(pinecone_embedding, resume_embedding)])
                 
-                # Calculate ATS score
-                # ats_score = ((similarity + pinecone_similarity) / 2) * 100
+                # Prepare input prompt
+                input_prompt = prepare_prompt(
+                    resume_text=resume_text,
+                    job_description=jd,
+                    pinecone_result=pinecone_results,
+                    cos_sim_pinecone_resume=pinecone_similarity,
+                    cos_sim_jd_resume=similarity
+                )
                 
-                # Geimin
-                input_prompt = prepare_prompt(resume_text=resume_text,job_description=jd, pinecone_result=pinecone_results,cos_sim_pinecone_resume=pinecone_similarity,cos_sim_jd_resume=similarity)
+                # Generate response using LangChain's chat model
+                prompt = ChatPromptTemplate.from_template(input_prompt)
+                response = prompt.invoke({})
                 
                 # Display results
                 st.success("🎯 Analysis Complete!")
-                
-                # Match percentage
-                # st.metric("ATS Score", f"{ats_score:.2f}%")
-                
-                # Missing keywords
                 st.title("Resume Feedback : ")
-                res=get_gemini_response(input_prompt)
-                st.write(res)
-                                
+                st.write(response)
 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
