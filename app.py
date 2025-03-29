@@ -5,7 +5,7 @@ import os
 import json
 from dotenv import load_dotenv
 from helper import (
-    get_google_embeddings.
+    get_google_embeddings,
     calculate_similarity,
     get_pinecone_matches,
     extract_pdf_text,
