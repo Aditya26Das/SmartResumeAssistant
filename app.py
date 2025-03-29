@@ -5,12 +5,11 @@ import os
 import json
 from dotenv import load_dotenv
 from helper import (
-    configure_genai,
-    extract_pdf_text,
-    prepare_prompt,
-    calculate_similarity_pinecone,
+    get_google_embeddings.
     calculate_similarity,
     get_pinecone_matches,
+    extract_pdf_text,
+    prepare_prompt,
     get_gemini_response
 )
 
