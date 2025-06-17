@@ -29,17 +29,16 @@
 
 ## 📂 Folder Structure
 
+```bash
 SmartResumeAssistant/
-├── app.py # Streamlit UI logic
-├── helper.py # Core logic (embeddings, Pinecone, Gemini)
-|-- notebooks
-|      ├── Resume.ipynb # Jupyter notebook (exploratory / dev use)
-├── .gitignore # Ignore venv, .env, pycache
-├── requirements.txt # [You should add this file]
-└── .env # [Create locally with API keys]
-
-
-
+├── app.py                # Streamlit UI logic
+├── helper.py             # Core logic (embeddings, Pinecone, Gemini)
+├── notebooks/
+│   └── Resume.ipynb      # Jupyter notebook (exploratory / dev use)
+├── .gitignore            # Ignore venv, .env, __pycache__
+├── requirements.txt      # Python dependencies
+└── .env                  # Environment variables (create locally)
+```
 ---
 
 ## ⚙️ Setup Instructions
