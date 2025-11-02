@@ -77,7 +77,7 @@ def main():
                 resume_text = extract_pdf_text(uploaded_file)
                 
                 # Initialize embeddings
-                embeddings = GoogleGenerativeAIEmbeddings(google_api_key=google_api_key, model="models/embedding-001")
+                embeddings = GoogleGenerativeAIEmbeddings(google_api_key=google_api_key, model="models/gemini-embedding-001")
                 jd_embedding = embeddings.embed_query(jd)
                 resume_embedding = embeddings.embed_query(resume_text)
                 
