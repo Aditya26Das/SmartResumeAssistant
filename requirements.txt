@@ -6,6 +6,6 @@ uvicorn
 python-dotenv
 streamlit_extras
 langchain-google-genai
-langchain_pinecone
+langchain-pinecone
 langchain_core
 pinecone_client
