@@ -20,10 +20,12 @@
 |----------------|--------------------------------------------------|
 | Frontend       | Streamlit                                       |
 | NLP/AI         | Google Gemini Pro (via `google.generativeai`)   |
-| Embeddings     | LangChain + Google Generative AI Embeddings     |
+| Embeddings     | LangChain + Vector Embeddings     |
 | Vector DB      | Pinecone                                         |
 | PDF Parsing    | PyPDF2                                           |
 | Utilities      | dotenv, Streamlit Extras                        |
+
+![Flow Diagram](flow_chart.jpg)
 
 ---
 
@@ -52,9 +54,8 @@ cd SmartResumeAssistant
 ### 2. Set up the environment
 
 ```bash
-python -m venv myenv
-source myenv/bin/activate      # On Windows: myenv\Scripts\activate
-pip install -r requirements.txt
+pip install uv
+uv add -r requirements.txt
 ```
 
 ### 3. Set up environment variables
@@ -68,7 +69,7 @@ PINECONE_API_KEY=your_pinecone_api_key
 
 ### 1. Run the app:
 ```bash
-streamlit run app.py
+uv run main.py
 ```
 
 ### 2. Upload your resume (PDF)

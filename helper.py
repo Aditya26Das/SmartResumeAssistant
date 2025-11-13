@@ -1,44 +1,5 @@
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableLambda
-from langchain_google_genai import ChatGoogleGenerativeAI
 import PyPDF2 as pdf
-import os
-from pinecone import Pinecone
-
-def get_google_embeddings():
-    """Initialize Google Generative AI embeddings."""
-    return GoogleGenerativeAIEmbeddings(
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
-        model="models/embedding-001"
-    )
-
-def calculate_similarity(text1, text2):
-    """Calculate cosine similarity between two texts using embeddings."""
-    embeddings = get_google_embeddings()
-    emb1 = embeddings.embed_query(text1)
-    emb2 = embeddings.embed_query(text2)
-    
-    return sum(a * b for a, b in zip(emb1, emb2))
-
-def get_pinecone_matches(query):
-    """Query Pinecone for the most relevant match."""
-    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    index_name = "resume-dataset-index"
-    index = pc.Index(index_name)
-    
-    vector_store = PineconeVectorStore(
-        index=index,
-        embedding=get_google_embeddings()
-    )
-    
-    results = vector_store.similarity_search(query, k=1)
-    return [{
-        "Category": result.metadata.get("Category"),
-        "Content": result.page_content
-    } for result in results]
 
 def extract_pdf_text(uploaded_file):
     """Extract text from a PDF file."""
@@ -74,11 +35,3 @@ def prepare_prompt(resume_text, job_description, pinecone_result, cos_sim_jd_res
     )
     return prompt.format(resume_text=resume_text, job_description=job_description, pinecone_result=pinecone_result)
 
-def get_gemini_response(prompt_text):
-    """Generate response using Gemini AI via LangChain."""
-    model = ChatGoogleGenerativeAI(
-        model="gemini-pro",
-        google_api_key=os.getenv("GOOGLE_API_KEY")
-    )
-    chain = prompt_text | model | StrOutputParser()
-    return chain.invoke({})
